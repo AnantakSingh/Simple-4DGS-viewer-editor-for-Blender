@@ -1,0 +1,20 @@
+schema_version = "1.0.0"
+
+id = "blender_4dgs_viewer_editor"
+version = "2.2.0"
+name = "Blender 4DGS Viewer/Editor"
+tagline = "View and edit 4D Gaussian splat (4DGS) sequences"
+maintainer = "Anantak Singh"
+website = "https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+tags = ["Import-Export", "Animation", "Render"]
+
+[permissions]
+files = "Read splat takes and write converted caches"
+
+[build]
+paths_exclude_pattern = ["__pycache__/", "*.pyc", ".*"]

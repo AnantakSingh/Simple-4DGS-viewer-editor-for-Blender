@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+
+# Build output (the installable zip is attached to GitHub releases)
+*.zip
+
+# Splat caches, capture data and Blender files
+*.splatcache/
+*.ply
+*.blend
+*.blend1
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
