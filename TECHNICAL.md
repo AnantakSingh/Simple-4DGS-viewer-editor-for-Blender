@@ -306,26 +306,33 @@ Tests live in `dev/`:
 
 # end-to-end: install zip, import .zip (cached) and a folder (converted), play, render both engines, save/reopen
 set BLENDER_USER_RESOURCES=%TEMP%\b4d_test_profile
-blender -b --factory-startup --python dev/test_headless.py -- blender_4dgs_viewer_editor-2.3.0.zip <take.zip> <small take folder> <out dir>
+blender -b --factory-startup --python dev/test_headless.py -- blender_4dgs_viewer_editor-2.3.1.zip <take.zip> <small take folder> <out dir>
 
 # features: every crop side in world space, feather, crop box ± invert, clean-up, colour, density,
 # echoes, speed, scene Playback Speed, keyframed speed ramps, trims, time remap, split, cut, fit timeline;
 # renders the docs' demo images
-blender -b --factory-startup --python dev/test_features.py -- blender_4dgs_viewer_editor-2.3.0.zip <take.zip> <out dir>
+blender -b --factory-startup --python dev/test_features.py -- blender_4dgs_viewer_editor-2.3.1.zip <take.zip> <out dir>
 
 # full-quality colour: plugin render vs an independent PLY-based reference (PSNR), and the compact look
-blender -b --factory-startup --python dev/test_quality.py -- blender_4dgs_viewer_editor-2.3.0.zip <take.zip> <out dir> [frame]
+blender -b --factory-startup --python dev/test_quality.py -- blender_4dgs_viewer_editor-2.3.1.zip <take.zip> <out dir> [frame]
+
+# the same zip installed as a classic add-on (Install legacy Add-on): convert, stream, cache-location fallback
+blender -b --factory-startup --python dev/test_legacy_install.py -- blender_4dgs_viewer_editor-2.3.1.zip <small take folder>
 ```
 
 `BLENDER_USER_RESOURCES` points Blender at a throw-away profile, so tests never touch your real add-ons or preferences. All suites pass on **Blender 5.1 and 5.2**.
 
 **Building a release:**
-1. Bump `version` in `blender_manifest.toml` and add a `CHANGELOG.md` entry.
+1. Bump `version` in `blender_manifest.toml` **and** `bl_info["version"]` in `__init__.py` (the build checks they match), and add a `CHANGELOG.md` entry.
 2. Run:
    ```bash
-   blender --factory-startup --command extension build --source-dir source/blender_4dgs_viewer_editor --output-dir .
+   python dev/build_zip.py
    ```
-3. Run the tests against the new zip.
+   This writes `blender_4dgs_viewer_editor-<version>.zip` with every file inside one top-level `blender_4dgs_viewer_editor/` folder.
+3. Optionally check it: `blender --command extension validate blender_4dgs_viewer_editor-<version>.zip`.
+4. Run the tests against the new zip.
+
+**Why one folder inside the zip:** it makes the same zip install both ways. As a **Blender 4.2+ extension**, Blender reads `blender_manifest.toml`, and its installer accepts the manifest either at the top of the zip or inside one top-level folder. As a **classic add-on** (*Install legacy Add-on*), Blender needs `__init__.py` inside a folder, plus `bl_info`. `blender --command extension build` puts files at the top of the zip, which classic installs can't use, so releases are built with `dev/build_zip.py` instead. In classic mode, the one extension-only call (`bpy.utils.extension_path_user`, for the read-only-take cache fallback) falls back to Blender's user data folder.
 
 ## Design decisions
 

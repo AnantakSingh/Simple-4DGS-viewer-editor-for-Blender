@@ -152,8 +152,11 @@ def cache_dir_for(source, context=None):
     parent = os.path.dirname(source.root.rstrip("\\/"))
     if os.access(parent, os.W_OK):
         return os.path.join(parent, source.take + ".splatcache")
-    # Read-only source location: fall back to the extension's user folder.
-    base = bpy.utils.extension_path_user(__package__, path="caches", create=True)
+    # Read-only source location: fall back to the extension's (or classic add-on's) user folder.
+    try:
+        base = bpy.utils.extension_path_user(__package__, path="caches", create=True)
+    except (ValueError, AttributeError):         # installed as a classic add-on
+        base = bpy.utils.user_resource("DATAFILES", path=os.path.join(__package__, "caches"), create=True)
     return os.path.join(base, f"{source.take}-{source.signature[:8]}.splatcache")
 
 

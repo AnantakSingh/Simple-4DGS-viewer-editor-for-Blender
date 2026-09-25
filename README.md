@@ -4,8 +4,8 @@ View, edit and render **4D Gaussian splat (4DGS) captures** in Blender: sequence
 
 ## Quick start
 
-1. **Download** `blender_4dgs_viewer_editor-2.3.0.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Don't unzip it.
-2. **Install:** in Blender, go to *Edit › Preferences › Get Extensions › ⌄ › Install from Disk…* and pick the zip.
+1. **Download** `blender_4dgs_viewer_editor-2.3.1.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Don't unzip it.
+2. **Install:** in Blender, go to *Edit › Preferences › Get Extensions › ⌄ › Install from Disk…* and pick the zip. (It also installs as a classic add-on: *Preferences › Add-ons › ⌄ › Install legacy Add-on…*.)
 3. **Import:** go to *File › Import › 4DGS Splat Sequence*. Pick a take `.zip`, the folder of `.ply` frames, or any `.ply` inside it. You can also drag the `.zip` into the viewport.
 4. **Play:** press <kbd>Space</kbd>. The first import of a take converts it in the background (about 20 s for 900 frames on an SSD). After that it opens instantly.
 
@@ -41,7 +41,7 @@ For a full walk-through, see the **[Usage Guide](USAGE_GUIDE.md)**. For how it w
 | `source/blender_4dgs_viewer_editor/` | Extension source code. |
 | `dev/` | Automated tests (see [TECHNICAL.md](TECHNICAL.md#development-testing-and-release)). |
 
-The installable zip is attached to each [release](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). To build it yourself from `source/`, see [Building a release](TECHNICAL.md#development-testing-and-release).
+The installable zip is attached to each [release](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Don't use GitHub's green *Code › Download ZIP*: that's the whole repository, not an installable add-on. To build it yourself from `source/`, see [Building a release](TECHNICAL.md#development-testing-and-release).
 
 ## Requirements
 

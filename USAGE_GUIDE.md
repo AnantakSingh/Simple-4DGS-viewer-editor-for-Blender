@@ -21,10 +21,14 @@ This guide takes you from a take on disk to a finished render. No scripting or c
 
 ## 1. Install
 
-1. Download `blender_4dgs_viewer_editor-2.3.0.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Keep it zipped.
+1. Download `blender_4dgs_viewer_editor-2.3.1.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Keep it zipped.
 2. Open Blender (4.2 or newer).
 3. Go to *Edit › Preferences › Get Extensions*. Click the **⌄** menu at the top right, choose **Install from Disk…**, and pick the zip.
 4. Check that **Blender 4DGS Viewer/Editor** is ticked under *Add-ons*.
+
+**Classic add-on install also works:** *Edit › Preferences › Add-ons › ⌄ › Install legacy Add-on…* with the same zip. Everything in it sits inside one `blender_4dgs_viewer_editor/` folder, as that installer expects. Use one method or the other, not both.
+
+**Wrong zip?** GitHub's green *Code › Download ZIP* button downloads the whole repository, which Blender can't install. Use the zip from the Releases page.
 
 **Updating:** install the new `.zip` the same way; it replaces the old version. Existing `.blend` files and caches keep working.
 

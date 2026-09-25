@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1 (2026-09-24)
+
+- **Fixed zip packaging:** all files now sit inside one `blender_4dgs_viewer_editor/` folder. The same zip installs as a Blender 4.2+ extension (*Install from Disk*) **or** as a classic add-on (*Install legacy Add-on*); before, only the extension route worked.
+- Added `bl_info` for classic installs, and a cache-location fallback that doesn't need extension-only APIs.
+- Releases are built with `dev/build_zip.py`. New test: `dev/test_legacy_install.py`.
+
 ## 2.3.0 (2026-09-24)
 
 - **Per-shoot view-dependent colour flag.** Each conversion measures whether the shoot's PLYs contain view-dependent colour (spherical harmonics), and how much a compact cache drops: average and p95 shift in 8-bit levels, rated none / negligible / minor / visible. The Take panel shows the flag, with **Upgrade to Full Quality** when the loss is visible. The import message and the CLI report it too.
