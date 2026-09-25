@@ -25,6 +25,12 @@ import zipfile
 
 import numpy as np
 
+try:                                    # inside Blender: part of the extension package
+    from . import sh as _sh
+except ImportError:                     # run as a script / multiprocessing child
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import sh as _sh
+
 CACHE_VERSION = 2
 SH_C0 = 0.28209479177387814
 
@@ -222,6 +228,71 @@ def to_splats(data, with_sh=False):
 
 # --------------------------------------------------------------------------- cache
 
+def analyse_view_dependence(source, frames=5, splats=20000, directions=64, seed=0):
+    """How much colour a compact cache drops for this shoot.
+
+    Samples `frames` evenly spaced frames, up to `splats` random splats each, and
+    `directions` random view directions. For each splat and direction it measures how
+    far the full colour (SH degrees 1-3) moves from the base colour a compact cache
+    keeps, in 8-bit display levels (worst channel). Returns a dict for meta.json:
+    degree, mean_levels, p95_levels, frames, rating (none / negligible / minor / visible).
+    """
+    n = len(source.frames)
+    count = max(1, min(frames, n))
+    picks = sorted({round(i * (n - 1) / max(count - 1, 1)) for i in range(count)})
+    rng = np.random.default_rng(seed)
+    dirs = rng.normal(size=(directions, 3))
+    dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
+    shifts, degree = [], None
+    reader = source.open_reader()
+    try:
+        for index in picks:
+            data = reader.read(index)
+            deg = sh_degree_of(data)
+            degree = deg if degree is None else min(degree, deg)
+            if deg == 0:
+                continue
+            k = _sh.COEFFS[deg]
+            sel = rng.choice(len(data), min(len(data), splats), replace=False)
+            dc = np.stack([data[f"f_dc_{c}"][sel] for c in range(3)], axis=1).astype(np.float64)
+            names = sorted((f for f in data.dtype.names if f.startswith("f_rest_")), key=lambda f: int(f[7:]))
+            rest = np.stack([data[f][sel] for f in names], axis=1).astype(np.float64).reshape(len(sel), 3, -1)[:, :, :k]
+            base = 0.5 + SH_C0 * dc
+            delta = np.einsum("nck,dk->ndc", rest, _sh.basis(dirs, deg))
+            full = np.clip(base[:, None, :] + delta, 0.0, 1.0)
+            shifts.append((np.abs(full - np.clip(base, 0.0, 1.0)[:, None, :]).max(axis=2) * 255).ravel())
+    finally:
+        reader.close()
+    if not degree or not shifts:
+        return {"degree": 0, "mean_levels": 0.0, "p95_levels": 0.0, "frames": len(picks), "rating": "none"}
+    values = np.concatenate(shifts)
+    mean = float(values.mean())
+    rating = "negligible" if mean < 1.0 else "minor" if mean < 3.0 else "visible"
+    return {"degree": int(degree), "mean_levels": round(mean, 2),
+            "p95_levels": round(float(np.percentile(values, 95)), 1), "frames": len(picks), "rating": rating}
+
+
+def view_dependence_flag(meta):
+    """One-line, human-readable flag: does this cache drop the shoot's view-dependent colour?"""
+    meta = meta or {}
+    vd = meta.get("view_dependence")
+    if meta.get("sh_requested") and meta.get("sh_degree"):
+        return f"Full quality: this shoot's view-dependent colour (SH degree {meta['sh_degree']}) is kept"
+    if vd is None:
+        return None
+    if vd["degree"] == 0:
+        return "This shoot has no view-dependent colour: the compact cache is lossless"
+    return (f"Compact cache drops this shoot's view-dependent colour: SH degree {vd['degree']}, "
+            f"avg {vd['mean_levels']:.1f} / p95 {vd['p95_levels']:.0f} levels ({vd['rating']})")
+
+
+def write_meta(cache_dir, meta):
+    path = os.path.join(cache_dir, "meta.json")
+    with open(path + ".tmp", "w") as f:
+        json.dump(meta, f, indent=1)
+    os.replace(path + ".tmp", path)
+
+
 def frame_path(cache_dir, frame_number):
     return os.path.join(cache_dir, "frames", f"{frame_number:06d}.npy")
 
@@ -339,15 +410,24 @@ def convert(source, cache_dir, workers=None, progress=None, with_sh=False):
         "max_count": max(counts),
         "sh_requested": sh_requested,
         "sh_degree": sh_degree,
+        "view_dependence": _safe_analysis(source, previous),
         "bounds_min": np.min([r[1] for r in results], axis=0).tolist(),
         "bounds_max": np.max([r[2] for r in results], axis=0).tolist(),
         "dtype": [[n, SPLAT_DTYPE.fields[n][0].base.str, list(SPLAT_DTYPE.fields[n][0].shape)]
                   for n in SPLAT_DTYPE.names],
     }
-    with open(meta_path + ".tmp", "w") as f:
-        json.dump(meta, f, indent=1)
-    os.replace(meta_path + ".tmp", meta_path)
+    write_meta(cache_dir, meta)
     return meta
+
+
+def _safe_analysis(source, previous):
+    """The shoot's view-dependence analysis; never fails a conversion."""
+    if previous.get("signature") == source.signature and previous.get("view_dependence"):
+        return previous["view_dependence"]
+    try:
+        return analyse_view_dependence(source)
+    except Exception:  # noqa: BLE001 - the flag is informative only
+        return None
 
 
 # --------------------------------------------------------------------------- CLI
@@ -391,6 +471,10 @@ def main(argv=None):
     else:
         print(f"Done: {len(meta['counts'])} frames, {min(meta['counts'])}-{meta['max_count']} splats, "
               f"{time.time() - t0:.0f}s -> {args.cache}")
+        flag = view_dependence_flag(meta)
+        if flag:
+            print(flag + ("" if meta["sh_requested"] or meta["view_dependence"]["degree"] == 0
+                          else ". Use --sh to keep it."))
     return 0
 
 

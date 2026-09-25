@@ -12,18 +12,44 @@ _SHORT = {"Max Splat Radius": "Max Radius", "Use Crop Box": "Use Box", "Invert C
 
 
 def _colour_quality(layout, obj):
-    """View-dependent colour toggle, or the upgrade offer for compact caches."""
+    """View-dependent colour toggle (full-quality caches only)."""
     cache = playback.get_cache(obj.b4d.cache_dir)
     if cache is not None and cache.sh_degree > 0:
         layout.prop(obj.b4d, "view_colour")
+
+
+def _upgrade_button(layout):
+    op = layout.operator(operators.B4D_OT_convert.bl_idname, text="Upgrade to Full Quality", icon="SHADING_RENDERED")
+    op.full_quality = True
+
+
+def _colour_flag(layout, obj):
+    """Per-shoot flag: does the compact cache drop this shoot's view-dependent colour?"""
+    cache = playback.get_cache(obj.b4d.cache_dir)
+    if cache is None:
+        return
+    vd = cache.meta.get("view_dependence")
+    if cache.sh_degree > 0:
+        layout.label(text="Full quality: view-dependent colour kept", icon="CHECKMARK")
+        return
+    if vd is None:
+        box = layout.box()
+        box.label(text="View-dependent colour: not checked", icon="QUESTION")
+        row = box.row(align=True)
+        row.operator(operators.B4D_OT_check_view_colour.bl_idname, text="Check", icon="VIEWZOOM")
+        _upgrade_button(row)
+        return
+    if vd["degree"] == 0:
+        layout.label(text="No view-dependent colour: compact is lossless", icon="CHECKMARK")
         return
     box = layout.box()
+    box.alert = vd["rating"] == "visible"
     col = box.column(align=True)
-    col.scale_y = 0.8
-    col.label(text="Compact cache: view-dependent", icon="INFO")
-    col.label(text="colour isn't stored (flatter shading).", icon="BLANK1")
-    op = box.operator(operators.B4D_OT_convert.bl_idname, text="Upgrade to Full Quality", icon="SHADING_RENDERED")
-    op.full_quality = True
+    col.label(text="Compact cache drops this shoot's", icon="ERROR" if box.alert else "INFO")
+    col.label(text=f"view-dependent colour ({vd['rating']})", icon="BLANK1")
+    col.label(text=f"SH {vd['degree']}: avg {vd['mean_levels']:.1f}, p95 {vd['p95_levels']:.0f} levels",
+              icon="BLANK1")
+    _upgrade_button(box)
 
 
 def _inputs(layout, obj, names):
@@ -116,6 +142,7 @@ class B4D_PT_take(bpy.types.Panel):
         info = playback.status(obj)
         if info:
             layout.label(text=info, icon="INFO")
+        _colour_flag(layout, obj)
         col = layout.column()
         col.use_property_split = True
         col.use_property_decorate = False

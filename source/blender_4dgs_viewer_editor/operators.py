@@ -279,7 +279,9 @@ class B4D_OT_import(bpy.types.Operator, ImportHelper):
             if self.setup_scene:
                 setup_view(context.scene, obj)
             playback.refresh(obj)
-            self.report({"INFO"}, f"{source.take}: {len(source.frames)} frames (cached)")
+            flag = convert.view_dependence_flag(convert.read_meta(cache_dir))
+            level = {"WARNING"} if flag and flag.startswith("Compact cache drops") else {"INFO"}
+            self.report(level, f"{source.take}: {len(source.frames)} frames (cached)" + (f". {flag}" if flag else ""))
         else:
             start_conversion(obj, setup_scene=self.setup_scene)
             self.report({"INFO"}, f"{source.take}: converting {len(source.frames)} frames in the background")
@@ -363,6 +365,35 @@ class B4D_OT_reload(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class B4D_OT_check_view_colour(bpy.types.Operator):
+    """Measure whether this shoot has view-dependent colour, and how much a compact cache drops
+    (reads 5 frames of the source)"""
+    bl_idname = "b4d.check_view_colour"
+    bl_label = "Check View-Dependent Colour"
+
+    @classmethod
+    def poll(cls, context):
+        obj = active_sequence(context)
+        return obj is not None and playback.get_cache(obj.b4d.cache_dir) is not None
+
+    def execute(self, context):
+        obj = active_sequence(context)
+        cache = playback.get_cache(obj.b4d.cache_dir)
+        try:
+            source = convert.find_source(obj.b4d.source)
+            result = convert.analyse_view_dependence(source)
+        except (OSError, ValueError, zipfile.BadZipFile) as e:
+            self.report({"ERROR"}, f"Can't read the source to check it: {e}")
+            return {"CANCELLED"}
+        meta = dict(cache.meta, view_dependence=result)
+        convert.write_meta(cache.root, meta)
+        playback.drop_cache(obj.b4d.cache_dir)
+        playback.refresh(obj)
+        flag = convert.view_dependence_flag(meta)
+        self.report({"WARNING"} if flag.startswith("Compact cache drops") else {"INFO"}, flag)
+        return {"FINISHED"}
+
+
 class B4D_OT_select(bpy.types.Operator):
     """Make this take the active object"""
     bl_idname = "b4d.select"
@@ -394,7 +425,8 @@ def _menu_import(self, context):
     self.layout.operator(B4D_OT_import.bl_idname, text="4DGS Splat Sequence (.ply folder / .zip)")
 
 
-classes = (B4D_OT_import, B4D_OT_convert, B4D_OT_cancel, B4D_OT_setup_view, B4D_OT_reload, B4D_OT_select,
+classes = (B4D_OT_import, B4D_OT_convert, B4D_OT_cancel, B4D_OT_setup_view, B4D_OT_reload,
+           B4D_OT_check_view_colour, B4D_OT_select,
            B4D_FH_import)
 
 

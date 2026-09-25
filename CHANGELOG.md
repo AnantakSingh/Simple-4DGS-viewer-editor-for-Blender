@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.0 (2026-09-24)
+
+- **Per-shoot view-dependent colour flag.** Each conversion measures whether the shoot's PLYs contain view-dependent colour (spherical harmonics), and how much a compact cache drops: average and p95 shift in 8-bit levels, rated none / negligible / minor / visible. The Take panel shows the flag, with **Upgrade to Full Quality** when the loss is visible. The import message and the CLI report it too.
+- **Check View-Dependent Colour** button for caches made by earlier versions.
+
 ## 2.2.0 (2026-09-24)
 
 - **Compact cache is the default again**: it's the most stable option (smallest, fastest playback, lowest memory). Full-Quality Colour stays available in the import dialog, and as **Upgrade to Full Quality** per take.

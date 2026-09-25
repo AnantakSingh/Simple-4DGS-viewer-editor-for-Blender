@@ -4,7 +4,7 @@ View, edit and render **4D Gaussian splat (4DGS) captures** in Blender: sequence
 
 ## Quick start
 
-1. **Download** `blender_4dgs_viewer_editor-2.2.0.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Don't unzip it.
+1. **Download** `blender_4dgs_viewer_editor-2.3.0.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Don't unzip it.
 2. **Install:** in Blender, go to *Edit › Preferences › Get Extensions › ⌄ › Install from Disk…* and pick the zip.
 3. **Import:** go to *File › Import › 4DGS Splat Sequence*. Pick a take `.zip`, the folder of `.ply` frames, or any `.ply` inside it. You can also drag the `.zip` into the viewport.
 4. **Play:** press <kbd>Space</kbd>. The first import of a take converts it in the background (about 20 s for 900 frames on an SSD). After that it opens instantly.
@@ -26,7 +26,7 @@ For a full walk-through, see the **[Usage Guide](USAGE_GUIDE.md)**. For how it w
 | **Look** | Size, Opacity (fades), Min Opacity, Max Radius (floater clean-up), Density, Exposure, Saturation, Hue Shift, Tint. |
 | **Echoes** | Onion-skin motion trails of earlier frames. |
 | **Many takes** | Each take is its own object, with its own settings, timing and position. |
-| **Two cache modes** | **Compact** (default): the most stable and fastest option, about 3 GB per 900-frame take, with slightly flatter shading. **Full-quality colour** (optional, or upgrade later): keeps each splat's view-dependent colour and evaluates it toward the camera or viewport eye, exactly as 3DGS viewers do. It matches an independent reference at **68 dB PSNR** (visually identical), with a 4× larger cache. See [Cache quality](TECHNICAL.md#cache-quality). |
+| **Two cache modes** | **Compact** (default): the most stable and fastest option, about 3 GB per 900-frame take, with slightly flatter shading. **Full-quality colour** (optional, or upgrade later): keeps each splat's view-dependent colour and evaluates it toward the camera or viewport eye, exactly as 3DGS viewers do. It matches an independent reference at **68 dB PSNR** (visually identical), with a 4× larger cache. Each shoot is **flagged**: the plugin measures whether the capture has view-dependent colour and how much compact drops for that shoot. See [Cache quality](TECHNICAL.md#cache-quality). |
 | **Small .blend files** | Splats aren't saved in the .blend; they're streamed from the cache. |
 
 ## Repository contents

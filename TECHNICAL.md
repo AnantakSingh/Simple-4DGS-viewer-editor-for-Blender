@@ -101,7 +101,7 @@ Per-splat record (`SPLAT_DTYPE`, 34 bytes, about 7× smaller than the PLY):
 
 Records are **sorted by importance** (`opacity × σ_max × σ_mid`, i.e. approximate screen coverage). Any prefix of a frame is then a sensible level of detail. *Density*, *Playback Detail* and *Echo Density* just take a prefix, with no random sampling and no flicker.
 
-`meta.json` holds `version`, `take`, `source`, `source_kind`, `signature`, `frame_numbers`, `counts`, `max_count`, `sh_requested`, `sh_degree`, `bounds_min/max` (source space, over the whole take) and `dtype`.
+`meta.json` holds `version`, `take`, `source`, `source_kind`, `signature`, `frame_numbers`, `counts`, `max_count`, `sh_requested`, `sh_degree`, `view_dependence` (see below), `bounds_min/max` (source space, over the whole take) and `dtype`.
 
 **Resume:** frames are written as `*.tmp.npy` and renamed. A re-run skips existing frames when `source.sig` matches. A different source clears `frames/` first.
 
@@ -132,6 +132,16 @@ A **compact** cache (the default: most stable and fastest) is lossy in exactly o
 The compact-cache numbers compare an EEVEE render with a render where every splat gets its full SH colour, evaluated toward the camera (as 3DGS rasterisers do). Frames 300 and 600 were rendered from the front and 90° to the side.
 
 **Not caused by the cache**, but also differing from a reference 3DGS viewer: EEVEE's dithered transparency (grain until samples converge); the ray-space Gaussian evaluation instead of 3DGS's screen-space EWA projection with its 0.3 px low-pass dilation (slightly crisper here); and the *Density* / *Playback Detail* sliders when below 1.
+
+### Per-shoot flag: does compact drop anything?
+
+How much a compact cache loses depends on the shoot: a capture with no `f_rest` properties loses nothing, and one with faint SH loses almost nothing. `convert.analyse_view_dependence()` measures it for each conversion (and on demand via **Check**). It picks 5 evenly spaced frames, 20k random splats per frame and 64 random view directions (fixed seed). For each splat and direction it takes the largest channel shift between `clamp(base + SH)` and the compact `clamp(base)`, in 8-bit levels. The result is stored as `meta.json › view_dependence`:
+
+```json
+{"degree": 3, "mean_levels": 7.29, "p95_levels": 18.9, "frames": 5, "rating": "visible"}
+```
+
+Rating: **none** (no SH in the PLYs), **negligible** (mean < 1 level), **minor** (< 3), **visible** (≥ 3). The analysis takes about 1 s (it re-reads 5 frames). It's reused while the source signature is unchanged, and it can never fail a conversion. `convert.view_dependence_flag()` turns it into the one-line flag used by the UI, the import report and the CLI. The per-splat mean tracks the image-level loss closely: 7.3 levels per splat vs 7.4 levels mean image difference on the sample take.
 
 ### How full-quality colour is evaluated
 
@@ -289,21 +299,22 @@ Other proxy approaches were measured during development and rejected:
 Tests live in `dev/`:
 
 ```bash
-# pure-Python tests: timing maths, SH colour vs the 3DGS reference formula
+# pure-Python tests: timing maths, SH colour vs the 3DGS reference formula, per-shoot colour flag
 "<blender>/5.2/python/bin/python.exe" dev/test_timing.py
 "<blender>/5.2/python/bin/python.exe" dev/test_sh.py
+"<blender>/5.2/python/bin/python.exe" dev/test_view_dependence.py
 
 # end-to-end: install zip, import .zip (cached) and a folder (converted), play, render both engines, save/reopen
 set BLENDER_USER_RESOURCES=%TEMP%\b4d_test_profile
-blender -b --factory-startup --python dev/test_headless.py -- blender_4dgs_viewer_editor-2.2.0.zip <take.zip> <small take folder> <out dir>
+blender -b --factory-startup --python dev/test_headless.py -- blender_4dgs_viewer_editor-2.3.0.zip <take.zip> <small take folder> <out dir>
 
 # features: every crop side in world space, feather, crop box ± invert, clean-up, colour, density,
 # echoes, speed, scene Playback Speed, keyframed speed ramps, trims, time remap, split, cut, fit timeline;
 # renders the docs' demo images
-blender -b --factory-startup --python dev/test_features.py -- blender_4dgs_viewer_editor-2.2.0.zip <take.zip> <out dir>
+blender -b --factory-startup --python dev/test_features.py -- blender_4dgs_viewer_editor-2.3.0.zip <take.zip> <out dir>
 
 # full-quality colour: plugin render vs an independent PLY-based reference (PSNR), and the compact look
-blender -b --factory-startup --python dev/test_quality.py -- blender_4dgs_viewer_editor-2.2.0.zip <take.zip> <out dir> [frame]
+blender -b --factory-startup --python dev/test_quality.py -- blender_4dgs_viewer_editor-2.3.0.zip <take.zip> <out dir> [frame]
 ```
 
 `BLENDER_USER_RESOURCES` points Blender at a throw-away profile, so tests never touch your real add-ons or preferences. All suites pass on **Blender 5.1 and 5.2**.

@@ -21,7 +21,7 @@ This guide takes you from a take on disk to a finished render. No scripting or c
 
 ## 1. Install
 
-1. Download `blender_4dgs_viewer_editor-2.2.0.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Keep it zipped.
+1. Download `blender_4dgs_viewer_editor-2.3.0.zip` from the [Releases page](https://github.com/AnantakSingh/Simple-4DGS-viewer-editor-for-Blender/releases). Keep it zipped.
 2. Open Blender (4.2 or newer).
 3. Go to *Edit › Preferences › Get Extensions*. Click the **⌄** menu at the top right, choose **Install from Disk…**, and pick the zip.
 4. Check that **Blender 4DGS Viewer/Editor** is ticked under *Add-ons*.
@@ -64,6 +64,7 @@ The first time a take is imported, it's converted into a cache in the background
 - **Stop Conversion** pauses it. Click **Convert** later to resume where it stopped.
 - Importing the same take again, in any file, finds the existing cache and opens instantly.
 - Conversion never modifies the original files.
+- Each conversion also checks whether this shoot has view-dependent colour, and flags it in the Take panel (see [the colour flag](#the-view-dependent-colour-flag)).
 
 ## 3. Watch it
 
@@ -87,6 +88,20 @@ Press <kbd>N</kbd> in the viewport and open the **Splats** tab.
 - **Up Axis**: change it only if a take comes in lying down or upside down. It resets the object's rotation.
 - **Set Up Viewing**: re-runs the camera, backdrop and frame-range setup for this take. Use it after moving the take or changing its timing.
 - **⟳ Reload**: re-reads the cache from disk.
+
+### The view-dependent colour flag
+
+Under the status line, the Take panel says whether the **compact cache drops anything for this shoot**. Many 3DGS/4DGS captures store view-dependent colour (the subtle sheen and shading change as you move around); some don't. The plugin samples five frames of the shoot and measures how far colours move with viewing angle:
+
+| Flag | Meaning | What to do |
+|---|---|---|
+| ✓ *No view-dependent colour: compact is lossless* | The capture stores base colour only. | Nothing; compact loses nothing. |
+| *Compact cache drops this shoot's view-dependent colour (negligible / minor)* | It exists, but the average shift is under 1 (negligible) or 3 (minor) of 255 levels. | Compact is fine for most uses. |
+| ⚠ *Compact cache drops this shoot's view-dependent colour (visible)*, with the average and p95 shift | Shading will look slightly flatter than the original. | Click **Upgrade to Full Quality** if it matters for this shoot. |
+| ✓ *Full quality: view-dependent colour kept* | The take already uses a full-quality cache. | Nothing. |
+| ? *View-dependent colour: not checked* | The cache was made by an older version. | Click **Check** (reads 5 frames, about a second). |
+
+The same flag appears in the import message when a cached take opens, and the command-line converter prints it.
 
 Below that are the **Timing**, **Crop**, **Look**, **Echoes** and **Files** sub-panels, covered next.
 
@@ -255,7 +270,7 @@ Splats are self-lit: they already carry the captured lighting. Scene lights don'
 | Conversion stopped or failed | Click **Convert** to resume. If a disk was full, free space first. The error text is shown in the panel. |
 | Performer lying down or upside down | Change **Take › Up Axis**. |
 | Performer faces away from the camera | Rotate **Splat Camera Rig** 180° on Z, or rotate the take object. |
-| Shading looks flatter or lighter than in other 3DGS viewers | The take uses a compact cache. Click **Look › Upgrade to Full Quality**, and make sure **View-Dependent Colour** is on. |
+| Shading looks flatter or lighter than in other 3DGS viewers | Check the colour flag in the Take panel. If it says the compact cache drops visible view-dependent colour, click **Upgrade to Full Quality**, and make sure **Look › View-Dependent Colour** is on. |
 | Colours don't follow my viewport after orbiting | Colours follow the largest 3D viewport in Rendered / Material Preview shading. They update a moment after you stop moving, and every frame while playing. |
 | Take looks grey or blobby | Switch the viewport to **Rendered** or **Material Preview** (Solid mode shows proxies). |
 | Colours look washed out | Use the **Standard** view transform (*Render › Colour Management*). *Set Up Viewing* sets it. |

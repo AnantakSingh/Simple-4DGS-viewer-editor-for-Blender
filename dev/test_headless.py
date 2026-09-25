@@ -66,6 +66,22 @@ wait_for_jobs()
 check(not b.b4d.job_id and not b.b4d.last_error, f"folder conversion finished ({time.time() - t0:.1f}s) {b.b4d.last_error}")
 check(playback.get_cache(b.b4d.cache_dir) is not None, f"folder cache valid at {b.b4d.cache_dir}")
 
+# 3b. per-shoot view-dependent colour flag
+convert = mod.convert
+meta_b = convert.read_meta(b.b4d.cache_dir)
+vd = meta_b.get("view_dependence") or {}
+flag_b = convert.view_dependence_flag(meta_b) or ""
+check(vd.get("degree") == 3 and vd.get("rating") == "visible" and flag_b.startswith("Compact cache drops"),
+      f"compact take is flagged: {flag_b}")
+meta_b.pop("view_dependence")                       # simulate a cache made before the analysis existed
+convert.write_meta(b.b4d.cache_dir, meta_b)
+playback.drop_cache(b.b4d.cache_dir)
+check(bpy.ops.b4d.check_view_colour() == {"FINISHED"}
+      and (convert.read_meta(b.b4d.cache_dir).get("view_dependence") or {}).get("rating") == "visible",
+      "Check View-Dependent Colour re-analyses an older cache")
+flag_a = convert.view_dependence_flag(convert.read_meta(a.b4d.cache_dir)) or "(not analysed)"
+print("zip take flag:", flag_a)
+
 # 4. playback + renders
 b.b4d.enabled = False
 scene.frame_set(300)
